@@ -123,6 +123,11 @@ const char html_page[] PROGMEM = R"rawliteral(
       <button class="btn btn-wifi">📡 Configure WiFi</button>
     </form>
     <button class="btn btn-wifi" style="background:#555;margin-top:10px" onclick="window.location.href='/update'">🔄 Update Firmware</button>
+    
+    <form action="/reset_wifi" method="POST" onsubmit="return confirm('Disconnect from Home WiFi and switch to Offline Mode?');">
+      <button class="btn" style="background:#c62828; color:white; margin-top:10px">⚠️ Forget WiFi & Go Offline</button>
+    </form>
+    
     <div class="status">IP: %IP_ADDR%</div>
   </div>
 </body>
@@ -190,6 +195,13 @@ void handleWiFiSetup() {
   }
   
   Serial.println("connected...yeey :)");
+  ESP.restart();
+}
+
+void handleResetWiFi() {
+  server.send(200, "text/html", "<h1>WiFi settings cleared!</h1><p>Restarting into Offline Mode...</p>");
+  delay(1000);
+  wifiManager.resetSettings();
   ESP.restart();
 }
 
@@ -267,6 +279,7 @@ void setup() {
   server.on("/save", handleSave);
   server.on("/set", handleSetBrightness);
   server.on("/wifi_setup", handleWiFiSetup);
+  server.on("/reset_wifi", handleResetWiFi);
   
   server.begin();
   Serial.println("HTTP server started");
