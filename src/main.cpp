@@ -4,6 +4,7 @@
  * - Modes: Online (WiFi) / Offline (AP)
  * - Unique device name (Wemos-Dimmer-XXXXXX)
  * - Web Updates + OTA
+ * - Multilingual Support (EN/RU)
  */
 
 #include <ESP8266WiFi.h>
@@ -26,6 +27,7 @@ struct Settings {
   int mode;              // 0 = Sensor, 1 = Web
   bool invertLogic;      // Sensor inversion
   int sensorMaxBrightness; // Brightness for sensor mode (0-1023)
+  int lang;              // 0 = EN, 1 = RU
 } config;
 
 // Brightness variables
@@ -72,22 +74,72 @@ const char html_page[] PROGMEM = R"rawliteral(
     .status { font-size: 12px; color: #666; margin-top: 10px; }
   </style>
   <script>
+    const texts = {
+      en: {
+        title: "Light Control",
+        config: "Configuration",
+        mode_sensor: "⚡ Sensor Mode (Auto)",
+        mode_manual: "🌐 Manual Mode (Web)",
+        invert: "Invert Sensor Logic",
+        max_bri: "Max Brightness:",
+        save: "Save Settings",
+        wifi: "📡 Configure WiFi",
+        update: "🔄 Update Firmware",
+        forget: "⚠️ Forget WiFi & Go Offline",
+        confirm_forget: "Disconnect from Home WiFi and switch to Offline Mode?"
+      },
+      ru: {
+        title: "Управление Светом",
+        config: "Настройки",
+        mode_sensor: "⚡ Автоматический (Датчик)",
+        mode_manual: "🌐 Ручной (Web)",
+        invert: "Инверсия Датчика",
+        max_bri: "Макс. Яркость:",
+        save: "Сохранить",
+        wifi: "📡 Настроить WiFi",
+        update: "🔄 Обновить Прошивку",
+        forget: "⚠️ Забыть WiFi (Оффлайн)",
+        confirm_forget: "Отключиться от домашней сети и перейти в автономный режим?"
+      }
+    };
+
+    function setLang(lang) {
+      document.getElementById('txt-title').innerText = texts[lang].title;
+      document.getElementById('txt-config').innerText = texts[lang].config;
+      document.getElementById('opt-sensor').innerText = texts[lang].mode_sensor;
+      document.getElementById('opt-manual').innerText = texts[lang].mode_manual;
+      document.getElementById('txt-invert').innerText = texts[lang].invert;
+      document.getElementById('txt-maxbri').innerText = texts[lang].max_bri;
+      document.getElementById('btn-save').innerText = texts[lang].save;
+      document.getElementById('btn-wifi').innerText = texts[lang].wifi;
+      document.getElementById('btn-update').innerText = texts[lang].update;
+      document.getElementById('btn-forget').innerText = texts[lang].forget;
+      document.getElementById('frm-forget').setAttribute('onsubmit', "return confirm('" + texts[lang].confirm_forget + "');");
+    }
+
     function updateVal(val) {
       document.getElementById('bri-disp').innerText = Math.round(val/10.23) + '%';
       var xhr = new XMLHttpRequest();
       xhr.open("GET", "/set?val=" + val, true);
       xhr.send();
     }
+    
     function toggleMode() {
         var val = document.getElementById('m').value;
         document.getElementById('web-ctrl').style.display = (val == '1') ? 'block' : 'none';
         document.getElementById('sensor-ctrl').style.display = (val == '0') ? 'block' : 'none';
     }
+
+    function init() {
+      toggleMode();
+      var lang = document.getElementById('l').value == '1' ? 'ru' : 'en';
+      setLang(lang);
+    }
   </script>
 </head>
-<body onload="toggleMode()">
+<body onload="init()">
   <div class="card">
-    <h2>Light Control</h2>
+    <h2 id="txt-title">Light Control</h2>
     <div class="dev-name">%DEV_NAME%</div>
     
     <div id="web-ctrl" style="display:none">
@@ -100,32 +152,39 @@ const char html_page[] PROGMEM = R"rawliteral(
     </div>
 
     <form action="/save" method="POST">
-      <h3>Configuration</h3>
+      <h3 id="txt-config">Configuration</h3>
+      
+      <div style="text-align:left;color:#aaa;font-size:12px;margin-bottom:5px">Language / Язык:</div>
+      <select name="lang" id="l" onchange="setLang(this.value == '1' ? 'ru' : 'en')">
+        <option value="0" %SEL_EN%>🇺🇸 English</option>
+        <option value="1" %SEL_RU%>🇷🇺 Русский</option>
+      </select>
+
       <select name="mode" id="m" onchange="toggleMode()">
-        <option value="0" %SEL_0%>⚡ Sensor Mode (Auto)</option>
-        <option value="1" %SEL_1%>🌐 Manual Mode (Web)</option>
+        <option value="0" id="opt-sensor" %SEL_0%>⚡ Sensor Mode (Auto)</option>
+        <option value="1" id="opt-manual" %SEL_1%>🌐 Manual Mode (Web)</option>
       </select>
       
       <div id="sensor-ctrl">
         <div class="checkbox-row">
-           <span>Invert Sensor Logic</span>
+           <span id="txt-invert">Invert Sensor Logic</span>
            <input type="checkbox" name="inv" %CHK%>
         </div>
-        <div style="text-align:left;color:#aaa;margin-top:10px;font-size:12px">Max Brightness:</div>
+        <div id="txt-maxbri" style="text-align:left;color:#aaa;margin-top:10px;font-size:12px">Max Brightness:</div>
         <input type="range" name="sb" min="10" max="1023" value="%S_BRI%" class="slider">
       </div>
 
-      <button type="submit" class="btn btn-save">Save Settings</button>
+      <button type="submit" id="btn-save" class="btn btn-save">Save Settings</button>
     </form>
 
     <hr>
     <form action="/wifi_setup" method="POST">
-      <button class="btn btn-wifi">📡 Configure WiFi</button>
+      <button id="btn-wifi" class="btn btn-wifi">📡 Configure WiFi</button>
     </form>
-    <button class="btn btn-wifi" style="background:#555;margin-top:10px" onclick="window.location.href='/update'">🔄 Update Firmware</button>
+    <button id="btn-update" class="btn btn-wifi" style="background:#555;margin-top:10px" onclick="window.location.href='/update'">🔄 Update Firmware</button>
     
-    <form action="/reset_wifi" method="POST" onsubmit="return confirm('Disconnect from Home WiFi and switch to Offline Mode?');">
-      <button class="btn" style="background:#c62828; color:white; margin-top:10px">⚠️ Forget WiFi & Go Offline</button>
+    <form id="frm-forget" action="/reset_wifi" method="POST">
+      <button id="btn-forget" class="btn" style="background:#c62828; color:white; margin-top:10px">⚠️ Forget WiFi & Go Offline</button>
     </form>
     
     <div class="status">IP: %IP_ADDR%</div>
@@ -142,6 +201,9 @@ void handleRoot() {
   if(config.mode == 0) { html.replace("%SEL_0%", "selected"); html.replace("%SEL_1%", ""); }
   else { html.replace("%SEL_0%", ""); html.replace("%SEL_1%", "selected"); }
   
+  if(config.lang == 1) { html.replace("%SEL_EN%", ""); html.replace("%SEL_RU%", "selected"); }
+  else { html.replace("%SEL_EN%", "selected"); html.replace("%SEL_RU%", ""); }
+
   html.replace("%CHK%", config.invertLogic ? "checked" : "");
   html.replace("%S_BRI%", String(config.sensorMaxBrightness));
   html.replace("%CUR_VAL%", String(targetBrightness));
@@ -155,6 +217,7 @@ void handleRoot() {
 
 void handleSave() {
   if (server.hasArg("mode")) config.mode = server.arg("mode").toInt();
+  if (server.hasArg("lang")) config.lang = server.arg("lang").toInt();
   config.invertLogic = server.hasArg("inv");
   if (server.hasArg("sb")) config.sensorMaxBrightness = server.arg("sb").toInt();
 
@@ -178,7 +241,6 @@ void handleSetBrightness() {
 
 // Start WiFiManager ON DEMAND
 void handleWiFiSetup() {
-  // AP name for setup is also unique
   String apName = "Setup-" + deviceName;
   server.send(200, "text/html", "<h1>Starting WiFi Setup...</h1><p>Connect to '" + apName + "' if connection is lost.</p><script>setTimeout(function(){window.location.href='/';}, 10000);</script>");
   delay(500);
@@ -225,11 +287,14 @@ void setup() {
   pinMode(SENSOR_PIN, INPUT);
 
   EEPROM.get(0, config);
+  // Basic validation to prevent EEPROM garbage issues after struct update
   if (config.mode < 0 || config.mode > 1) {
     config.mode = 0;
     config.invertLogic = false;
     config.sensorMaxBrightness = 1023;
+    config.lang = 0; // Default to English
   }
+  if (config.lang < 0 || config.lang > 1) config.lang = 0;
 
   // --- UNIQUE ID GENERATION ---
   String chipId = String(ESP.getChipId(), HEX);
@@ -256,25 +321,19 @@ void setup() {
   } else {
     Serial.println("\nFailed to connect. Starting Offline AP.");
     WiFi.mode(WIFI_AP);
-    // Access point is also unique to avoid confusion
     WiFi.softAP(deviceName.c_str(), "12345678"); 
     Serial.println("AP IP: " + WiFi.softAPIP().toString());
   }
 
-  // mDNS: http://wemos-dimmer-1A2B3C.local
   if (MDNS.begin(deviceName.c_str())) {
     Serial.println("mDNS responder started: " + deviceName + ".local");
   }
 
-  // Setup update server (via browser)
-  // httpUpdater.setup(&server, "/update", "admin", "admin");
   httpUpdater.setup(&server, "/update"); // No password for convenience 
   
-  // Setup OTA (via IDE)
   ArduinoOTA.setHostname(deviceName.c_str());
   ArduinoOTA.begin();
 
-  // Setup main web server
   server.on("/", handleRoot);
   server.on("/save", handleSave);
   server.on("/set", handleSetBrightness);
@@ -291,7 +350,6 @@ void loop() {
   ArduinoOTA.handle();
   MDNS.update();
 
-  // --- Eco Mode ---
   if (WiFi.getMode() == WIFI_AP) {
      if (WiFi.softAPgetStationNum() == 0 && (millis() - lastActivity > WIFI_TIMEOUT)) {
         // WiFi.mode(WIFI_OFF); 
@@ -299,7 +357,6 @@ void loop() {
      if (WiFi.softAPgetStationNum() > 0) lastActivity = millis();
   }
 
-  // --- Light Logic ---
   if (config.mode == 0) { 
     bool sensorSignal = digitalRead(SENSOR_PIN); 
     bool doorOpen = (sensorSignal == HIGH); 

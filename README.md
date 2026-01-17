@@ -2,6 +2,8 @@
 
 This project is a custom firmware for the Wemos D1 Mini (ESP8266) designed to control LED lighting in furniture (e.g., cabinets, wardrobes). It supports both **Online** (WiFi connected) and **Offline** (Autonomous) modes, making it versatile for any environment.
 
+**Note**: This is currently a **test prototype**. It controls the **built-in LED (D4)** on the Wemos board for demonstration purposes. To control high-power LED strips, you will need to connect an external MOSFET module to the D4 pin.
+
 ## 🌟 Features
 
 *   **Unique Device ID**: Each board generates a unique name based on its Chip ID (e.g., `Wemos-Dimmer-A1B2C3`). No conflicts when using multiple devices!

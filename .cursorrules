@@ -1,0 +1,14 @@
+# AI Assistant Rules
+
+1. **Git Policy**:
+   - NEVER execute `git push` without explicit user confirmation.
+   - Always ask before creating new commits.
+
+2. **Language**:
+   - Communication: Russian (Русский).
+   - Code Comments: English.
+   - Documentation: English.
+
+3. **Code Style**:
+   - Follow existing PlatformIO / Arduino conventions.
+   - Keep `src/main.cpp` clean and readable.
